@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tata Surya Realistis</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            color: white;
+        }
+        .button {
+            background-color: #333;
+            color: white;
+            border: 1px solid #fff;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="button" id="slowButton">Slow Down</button>
+        <button class="button" id="speedUpButton">Speed Up</button>
+    </div>
+
+    <canvas id="solarSystem"></canvas>
+
+    <script>
+        const canvas = document.getElementById('solarSystem');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // Planet Images
+        const planetImages = {
+            sun: 'sunn.png',
+            mercury: 'mercury.png',
+            venus: 'venus.png',
+            earth: 'earth.png',
+            mars: 'marss.png',
+            jupiter: 'jupiter.png',
+            saturn: 'saturn.png',
+            uranus: 'uranus.png',
+            neptune: 'neptune.png',
+            moon: 'moon.png'
+        };
+
+        const planets = [
+            { name: 'Mercury', image: 'mercury', orbitRadius: 120, size: 55, speed: 0.02 },
+            { name: 'Venus', image: 'venus', orbitRadius: 170, size: 55, speed: 0.015 },
+            { name: 'Earth', image: 'earth', orbitRadius: 220, size: 80, speed: 0.01 },
+            { name: 'Mars', image: 'mars', orbitRadius: 280, size: 55, speed: 0.008 },
+            { name: 'Jupiter', image: 'jupiter', orbitRadius: 350, size: 70, speed: 0.006 },
+            { name: 'Saturn', image: 'saturn', orbitRadius: 420, size: 70, speed: 0.004 },
+            { name: 'Uranus', image: 'uranus', orbitRadius: 490, size: 70, speed: 0.003 },
+            { name: 'Neptune', image: 'neptune', orbitRadius: 560, size: 70, speed: 0.002 }
+        ];
+
+        const moon = {
+            orbitRadius: 30,
+            size: 40,
+            speed: 0.05
+        };
+
+        const stars = [];
+        for (let i = 0; i < 300; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 2,
+                opacity: Math.random(),
+                speed: Math.random() * 0.02 + 0.005,
+                hue: Math.floor(Math.random() * 360)
+            });
+        }
+
+        const loadedImages = {};
+        let loadedCount = 0;
+        const totalImages = Object.keys(planetImages).length;
+
+        for (const [key, url] of Object.entries(planetImages)) {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                loadedImages[key] = img;
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                    startAnimation();
+                }
+            };
+        }
+
+        function drawSolarSystem() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawStars();
+
+            // Draw Sun
+            const sunImage = loadedImages.sun;
+            ctx.drawImage(sunImage, centerX - 75, centerY - 75, 150, 150);
+
+            // Draw Sun Name
+            ctx.fillStyle = 'white';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Sun', centerX, centerY - 90); // Name above the Sun
+
+            const currentTime = Date.now() / 1000; // Current time in seconds
+
+            planets.forEach(planet => {
+                const angle = currentTime * planet.speed; // Calculate rotation angle based on time
+                const planetX = centerX + planet.orbitRadius * Math.cos(angle);
+                const planetY = centerY + planet.orbitRadius * Math.sin(angle);
+
+                // Draw orbit
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, planet.orbitRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Draw planet
+                const planetImage = loadedImages[planet.image];
+                ctx.drawImage(
+                    planetImage,
+                    planetX - planet.size / 2,
+                    planetY - planet.size / 2,
+                    planet.size,
+                    planet.size
+                );
+
+                // Add planet name
+                ctx.fillStyle = 'white';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(planet.name, planetX, planetY - planet.size / 2 - 10); // Name above the planet
+
+                // If planet is Earth, draw Moon
+                if (planet.name === 'Earth') {
+                    drawMoon(planetX, planetY, currentTime);
+                }
+            });
+
+            requestAnimationFrame(drawSolarSystem);
+        }
+
+        function drawMoon(earthX, earthY, currentTime) {
+            const angle = currentTime * moon.speed;
+            const moonX = earthX + moon.orbitRadius * Math.cos(angle);
+            const moonY = earthY + moon.orbitRadius * Math.sin(angle);
+
+            ctx.beginPath();
+            ctx.arc(earthX, earthY, moon.orbitRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            const moonImage = loadedImages.moon;
+            if (moonImage) {
+                ctx.drawImage(
+                    moonImage,
+                    moonX - moon.size / 2,
+                    moonY - moon.size / 2,
+                    moon.size,
+                    moon.size
+                );
+            } else {
+                ctx.beginPath();
+                ctx.arc(moonX, moonY, moon.size / 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'gray';
+                ctx.fill();
+            }
+
+            // Add Moon name
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Moon', moonX, moonY - moon.size / 2 - 10); // Name above the Moon
+        }
+
+        function drawStars() {
+            stars.forEach(star => {
+                star.opacity += star.speed;
+                if (star.opacity > 1 || star.opacity < 0) {
+                    star.speed *= -1;
+                    star.hue = Math.floor(Math.random() * 360);
+                }
+
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${star.hue}, 100%, 70%, ${Math.abs(star.opacity)})`;
+                ctx.fill();
+            });
+        }
+
+        function startAnimation() {
+            drawSolarSystem();
+        }
+
+        // Event listeners for speed control buttons
+        document.getElementById('slowButton').addEventListener('click', () => {
+            planets.forEach(planet => {
+                planet.speed *= 0.8; // Slows down the planets
+            });
+        });
+
+        document.getElementById('speedUpButton').addEventListener('click', () => {
+            planets.forEach(planet => {
+                planet.speed *= 1.2; // Speeds up the planets
+            });
+        });
+    </script>
+</body>
+</html>
